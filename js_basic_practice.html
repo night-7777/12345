@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript 基础知识练习</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f5f7fa;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #2980b9;
+      margin-top: 30px;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+    .output {
+      background: #eafaf1;
+      border-left: 4px solid #27ae60;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+  </style>
+</head>
+<body>
+
+<h1>JavaScript 基础知识练习</h1>
+
+<!-- ===== 1. 变量的定义 ===== -->
+<div class="section">
+  <h2>一、变量的定义</h2>
+  <pre>
+// 使用 var 定义变量（函数作用域）
+var name = "Alice";
+
+// 使用 let 定义变量（块级作用域，推荐）
+let age = 20;
+
+// 使用 const 定义常量（不可重新赋值）
+const PI = 3.14159;
+
+console.log("姓名：" + name);
+console.log("年龄：" + age);
+console.log("圆周率：" + PI);
+  </pre>
+  <div class="output" id="output1"></div>
+</div>
+
+<!-- ===== 2. 变量类型 ===== -->
+<div class="section">
+  <h2>二、变量类型</h2>
+  <pre>
+// 数值类型 Number
+let num = 42;
+let float = 3.14;
+
+// 字符串类型 String
+let str = "Hello, JavaScript!";
+
+// 布尔类型 Boolean
+let isStudent = true;
+
+// 未定义类型 Undefined
+let undef;
+
+// 空值类型 Null
+let empty = null;
+
+// 对象类型 Object
+let person = { name: "Bob", age: 18 };
+
+// 数组（特殊对象）
+let arr = [1, 2, 3, 4, 5];
+
+// 使用 typeof 检查类型
+console.log(typeof num);       // number
+console.log(typeof str);       // string
+console.log(typeof isStudent); // boolean
+console.log(typeof undef);     // undefined
+console.log(typeof empty);     // object
+console.log(typeof person);    // object
+console.log(Array.isArray(arr)); // true
+  </pre>
+  <div class="output" id="output2"></div>
+</div>
+
+<!-- ===== 3. 表达式 ===== -->
+<div class="section">
+  <h2>三、表达式</h2>
+  <pre>
+// 算术表达式
+let a = 10, b = 3;
+console.log("加法：" + (a + b));   // 13
+console.log("减法：" + (a - b));   // 7
+console.log("乘法：" + (a * b));   // 30
+console.log("除法：" + (a / b));   // 3.333...
+console.log("取余：" + (a % b));   // 1
+console.log("幂运算：" + (a ** b)); // 1000
+
+// 比较表达式
+console.log("10 > 3 ：" + (a > b));   // true
+console.log("10 === 10：" + (a === 10)); // true
+console.log("10 !== 3 ：" + (a !== b)); // true
+
+// 逻辑表达式
+let x = true, y = false;
+console.log("与(&&)：" + (x && y)); // false
+console.log("或(||)：" + (x || y)); // true
+console.log("非(!) ：" + (!x));     // false
+
+// 字符串拼接
+let greeting = "Hello" + ", " + "World!";
+console.log(greeting);
+
+// 模板字符串
+let score = 95;
+console.log(`我的成绩是 ${score} 分，${score >= 90 ? "优秀" : "良好"}！`);
+  </pre>
+  <div class="output" id="output3"></div>
+</div>
+
+<!-- ===== 4. 流程控制 ===== -->
+<div class="section">
+  <h2>四、流程控制</h2>
+  <pre>
+// --- if / else if / else ---
+let myScore = 85;
+if (myScore >= 90) {
+  console.log("成绩等级：优秀");
+} else if (myScore >= 75) {
+  console.log("成绩等级：良好");
+} else if (myScore >= 60) {
+  console.log("成绩等级：及格");
+} else {
+  console.log("成绩等级：不及格");
+}
+
+// --- switch ---
+let day = new Date().getDay(); // 0=周日, 1=周一 ...
+let dayName;
+switch (day) {
+  case 0: dayName = "周日"; break;
+  case 1: dayName = "周一"; break;
+  case 2: dayName = "周二"; break;
+  case 3: dayName = "周三"; break;
+  case 4: dayName = "周四"; break;
+  case 5: dayName = "周五"; break;
+  case 6: dayName = "周六"; break;
+  default: dayName = "未知";
+}
+console.log("今天是：" + dayName);
+
+// --- for 循环 ---
+let sum = 0;
+for (let i = 1; i <= 10; i++) {
+  sum += i;
+}
+console.log("1 到 10 的总和：" + sum);
+
+// --- while 循环 ---
+let count = 1;
+let result = 1;
+while (count <= 5) {
+  result *= count;
+  count++;
+}
+console.log("5 的阶乘：" + result);
+
+// --- for...of 遍历数组 ---
+let fruits = ["苹果", "香蕉", "橙子"];
+let fruitStr = "水果列表：";
+for (let fruit of fruits) {
+  fruitStr += fruit + " ";
+}
+console.log(fruitStr);
+  </pre>
+  <div class="output" id="output4"></div>
+</div>
+
+<!-- ===== 5. 函数 ===== -->
+<div class="section">
+  <h2>五、函数</h2>
+  <pre>
+// --- 函数声明 ---
+function greet(name) {
+  return "你好，" + name + "！";
+}
+console.log(greet("小明"));
+
+// --- 函数表达式 ---
+const add = function(a, b) {
+  return a + b;
+};
+console.log("3 + 5 = " + add(3, 5));
+
+// --- 箭头函数 ---
+const multiply = (a, b) => a * b;
+console.log("4 × 6 = " + multiply(4, 6));
+
+// --- 默认参数 ---
+function power(base, exp = 2) {
+  return Math.pow(base, exp);
+}
+console.log("3 的平方：" + power(3));
+console.log("2 的 10 次方：" + power(2, 10));
+
+// --- 递归函数 ---
+function factorial(n) {
+  if (n <= 1) return 1;
+  return n * factorial(n - 1);
+}
+console.log("6 的阶乘：" + factorial(6));
+
+// --- 函数作为参数（高阶函数）---
+let numbers = [3, 1, 4, 1, 5, 9, 2, 6];
+let sorted = numbers.sort((a, b) => a - b);
+console.log("排序结果：" + sorted.join(", "));
+
+let evens = numbers.filter(n => n % 2 === 0);
+console.log("偶数：" + evens.join(", "));
+  </pre>
+  <div class="output" id="output5"></div>
+</div>
+
+<script>
+  // 辅助函数：重定向 console.log 到页面输出区域
+  function runAndCapture(fn, outputId) {
+    const lines = [];
+    const orig = console.log;
+    console.log = (...args) => {
+      lines.push(args.map(String).join(" "));
+      orig.apply(console, args);
+    };
+    try { fn(); } catch(e) { lines.push("错误：" + e.message); }
+    console.log = orig;
+    document.getElementById(outputId).textContent = lines.join("\n");
+  }
+
+  // ===== 1. 变量的定义 =====
+  runAndCapture(function() {
+    var name = "Alice";
+    let age = 20;
+    const PI = 3.14159;
+    console.log("姓名：" + name);
+    console.log("年龄：" + age);
+    console.log("圆周率：" + PI);
+  }, "output1");
+
+  // ===== 2. 变量类型 =====
+  runAndCapture(function() {
+    let num = 42;
+    let str = "Hello, JavaScript!";
+    let isStudent = true;
+    let undef;
+    let empty = null;
+    let person = { name: "Bob", age: 18 };
+    let arr = [1, 2, 3, 4, 5];
+    console.log(typeof num);
+    console.log(typeof str);
+    console.log(typeof isStudent);
+    console.log(typeof undef);
+    console.log(typeof empty);
+    console.log(typeof person);
+    console.log(Array.isArray(arr));
+  }, "output2");
+
+  // ===== 3. 表达式 =====
+  runAndCapture(function() {
+    let a = 10, b = 3;
+    console.log("加法：" + (a + b));
+    console.log("减法：" + (a - b));
+    console.log("乘法：" + (a * b));
+    console.log("除法：" + (a / b).toFixed(3));
+    console.log("取余：" + (a % b));
+    console.log("幂运算：" + (a ** b));
+    console.log("10 > 3 ：" + (a > b));
+    console.log("10 === 10：" + (a === 10));
+    console.log("10 !== 3 ：" + (a !== b));
+    let x = true, y = false;
+    console.log("与(&&)：" + (x && y));
+    console.log("或(||)：" + (x || y));
+    console.log("非(!) ：" + (!x));
+    let greeting = "Hello" + ", " + "World!";
+    console.log(greeting);
+    let score = 95;
+    console.log(`我的成绩是 ${score} 分，${score >= 90 ? "优秀" : "良好"}！`);
+  }, "output3");
+
+  // ===== 4. 流程控制 =====
+  runAndCapture(function() {
+    let myScore = 85;
+    if (myScore >= 90) {
+      console.log("成绩等级：优秀");
+    } else if (myScore >= 75) {
+      console.log("成绩等级：良好");
+    } else if (myScore >= 60) {
+      console.log("成绩等级：及格");
+    } else {
+      console.log("成绩等级：不及格");
+    }
+    let day = new Date().getDay();
+    let dayName;
+    switch (day) {
+      case 0: dayName = "周日"; break;
+      case 1: dayName = "周一"; break;
+      case 2: dayName = "周二"; break;
+      case 3: dayName = "周三"; break;
+      case 4: dayName = "周四"; break;
+      case 5: dayName = "周五"; break;
+      case 6: dayName = "周六"; break;
+      default: dayName = "未知";
+    }
+    console.log("今天是：" + dayName);
+    let sum = 0;
+    for (let i = 1; i <= 10; i++) { sum += i; }
+    console.log("1 到 10 的总和：" + sum);
+    let count = 1, result = 1;
+    while (count <= 5) { result *= count; count++; }
+    console.log("5 的阶乘：" + result);
+    let fruits = ["苹果", "香蕉", "橙子"];
+    let fruitStr = "水果列表：";
+    for (let fruit of fruits) { fruitStr += fruit + " "; }
+    console.log(fruitStr);
+  }, "output4");
+
+  // ===== 5. 函数 =====
+  runAndCapture(function() {
+    function greet(name) { return "你好，" + name + "！"; }
+    console.log(greet("小明"));
+    const add = function(a, b) { return a + b; };
+    console.log("3 + 5 = " + add(3, 5));
+    const multiply = (a, b) => a * b;
+    console.log("4 × 6 = " + multiply(4, 6));
+    function power(base, exp = 2) { return Math.pow(base, exp); }
+    console.log("3 的平方：" + power(3));
+    console.log("2 的 10 次方：" + power(2, 10));
+    function factorial(n) { if (n <= 1) return 1; return n * factorial(n - 1); }
+    console.log("6 的阶乘：" + factorial(6));
+    let numbers = [3, 1, 4, 1, 5, 9, 2, 6];
+    let sorted = [...numbers].sort((a, b) => a - b);
+    console.log("排序结果：" + sorted.join(", "));
+    let evens = numbers.filter(n => n % 2 === 0);
+    console.log("偶数：" + evens.join(", "));
+  }, "output5");
+</script>
+
+</body>
+</html>
