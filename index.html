@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>西北民族大学 · 校园设备租赁平台 · CampusRent</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --primary: #1F3864;
@@ -883,57 +884,39 @@ body {
 </footer>
 
 <script>
-// ===== 数据层：Mock 数据（模拟真实校园租赁场景） =====
-// Quick SVG placeholder generator
-function camPlaceholder(label) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="#2C3E50"/><rect x="60" y="70" width="280" height="160" rx="16" fill="#5D6D7E"/><circle cx="200" cy="150" r="45" fill="#34495E" stroke="#ECF0F1" stroke-width="4"/><circle cx="200" cy="150" r="20" fill="#1A252F"/><rect x="180" y="55" width="40" height="15" rx="4" fill="#7F8C8D"/><text x="200" y="250" text-anchor="middle" fill="#BDC3C7" font-size="24" font-family="sans-serif">${label}</text></svg>`;
-  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-}
-function bikePlaceholder(label) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="#1A5276"/><circle cx="130" cy="200" r="50" fill="none" stroke="#ECF0F1" stroke-width="8"/><circle cx="270" cy="200" r="50" fill="none" stroke="#ECF0F1" stroke-width="8"/><line x1="130" y1="200" x2="200" y2="120" stroke="#ECF0F1" stroke-width="6"/><line x1="270" y1="200" x2="200" y2="120" stroke="#ECF0F1" stroke-width="6"/><line x1="130" y1="200" x2="200" y2="200" stroke="#ECF0F1" stroke-width="6"/><line x1="270" y1="200" x2="200" y2="200" stroke="#ECF0F1" stroke-width="6"/><circle cx="200" cy="120" r="12" fill="#E74C3C"/><text x="200" y="270" text-anchor="middle" fill="#AED6F1" font-size="20" font-family="sans-serif">${label}</text></svg>`;
-  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+// ===== Supabase 初始化 =====
+const SUPABASE_URL = 'https://tqjvqnnfciptmlrshgtt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_FiXxzl0jdNizh4oT0QstzQ_2fa6SrbH';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let mockItems = [];
+
+async function loadItems() {
+  const { data, error } = await db.from('items').select('*').order('created_at', { ascending: false });
+  if (!error && data) {
+    mockItems = data.map(item => ({
+      ...item,
+      desc: item.description || item.desc || '',
+      reviews: typeof item.reviews === 'string' ? JSON.parse(item.reviews) : (item.reviews || [])
+    }));
+  }
+  renderCards();
 }
 
-const mockItems = [
-  { id:1, name:'佳能 EOS R50', category:'camera', price:80, deposit:2000, campus:'榆中校区', minDays:1,
-    status:'available', owner:'李同学', avatar:'李', rating:4.8, desc:'入门级微单，适合拍摄课程作业和社团活动。配18-45mm镜头，带电池两块、充电器、相机包。成色95新。',
-    images: [camPlaceholder('EOS R50'), camPlaceholder('配件齐全')],
-    reviews:[{ user:'王同学', avatar:'王', rating:5, date:'2026-06-03', text:'相机很新，同学很nice，提前准备好了所有配件。课程作业拍摄非常顺利！' },
-             { user:'赵同学', avatar:'赵', rating:4, date:'2026-05-28', text:'整体不错，就是电池续航略短，建议多带一块备用电池。' }] },
-  { id:2, name:'尼康 Z30', category:'camera', price:70, deposit:1500, campus:'城关校区', minDays:2,
-    status:'available', owner:'张同学', avatar:'张', rating:4.5, desc:'便携微单，轻便易携。带16-50mm套机镜头，保护得比较好，适合外出拍摄。',
-    reviews:[{ user:'刘同学', avatar:'刘', rating:5, date:'2026-06-05', text:'非常轻便！和同学约在图书馆自助取还，很方便。' }] },
-  { id:3, name:'索尼 A6400', category:'camera', price:100, deposit:3000, campus:'榆中校区', minDays:1,
-    status:'rented', owner:'陈同学', avatar:'陈', rating:4.9, desc:'中端微单，视频拍摄能力出色。配适马18-50mm F2.8，适合拍摄微电影和短视频作业。',
-    reviews:[{ user:'周同学', avatar:'周', rating:5, date:'2026-06-01', text:'画质很好，对焦快。陈同学很专业，还教我一些拍摄技巧！' },
-             { user:'林同学', avatar:'林', rating:5, date:'2026-05-20', text:'视频拍摄利器，拍出的微电影作业拿了A！强烈推荐。' }] },
-  { id:4, name:'GoPro HERO12', category:'gopro', price:60, deposit:1200, campus:'榆中校区', minDays:1,
-    status:'available', owner:'黄同学', avatar:'黄', rating:4.7, desc:'最新款运动相机，5.3K视频，超强防抖。配防水壳、头盔支架、胸带。适合运动会、户外活动记录。',
-    images: [bikePlaceholder('GoPro HERO12'), camPlaceholder('防水壳+支架')],
-    reviews:[{ user:'吴同学', avatar:'吴', rating:5, date:'2026-06-02', text:'运动会用了两天，防抖效果惊艳！配件齐全，包装也很好。' }] },
-  { id:5, name:'DJI Action 4', category:'gopro', price:55, deposit:1000, campus:'城关校区', minDays:1,
-    status:'available', owner:'孙同学', avatar:'孙', rating:4.3, desc:'大疆运动相机，磁吸快拆设计，方便切换场景。超强夜景拍摄能力。',
-    reviews:[] },
-  { id:6, name:'GoPro HERO11', category:'gopro', price:45, deposit:800, campus:'榆中校区', minDays:2,
-    status:'rented', owner:'马同学', avatar:'马', rating:4.6, desc:'前代旗舰，性价比高。配多种支架，电池三块，续航无忧。',
-    reviews:[{ user:'郑同学', avatar:'郑', rating:4, date:'2026-05-25', text:'设备有些使用痕迹但不影响使用，价格实惠。' }] },
-  { id:7, name:'美利达 公爵600', category:'bike', price:25, deposit:500, campus:'榆中校区', minDays:1,
-    status:'available', owner:'钱同学', avatar:'钱', rating:4.4, desc:'入门山地车，27.5寸，Shimano 24速。适合短途出行和周末骑行。',
-    images: [bikePlaceholder('公爵600'), bikePlaceholder('细节图')],
-    reviews:[{ user:'许同学', avatar:'许', rating:4, date:'2026-06-04', text:'车况不错，骑着去了趟翠英山，体验很好。取还在楼下很方便。' }] },
-  { id:8, name:'捷安特 ATX 860', category:'bike', price:30, deposit:600, campus:'城关校区', minDays:1,
-    status:'available', owner:'何同学', avatar:'何', rating:4.8, desc:'经典山地车，27.5寸，Shimano 27速。车况优秀，刚做过保养。适合校区通勤与周边骑行。',
-    reviews:[{ user:'冯同学', avatar:'冯', rating:5, date:'2026-05-30', text:'非常好骑！变速顺畅，刹车灵敏。何同学还很贴心地配了车锁。' }] },
-  { id:9, name:'佳能 EOS R10', category:'camera', price:75, deposit:1800, campus:'榆中校区', minDays:1,
-    status:'available', owner:'周玉彤', avatar:'周', rating:4.9, desc:'轻量微单，适合新手入门。配RF-S 18-45mm镜头，对焦快速准确。附带备用电池和128G SD卡。',
-    reviews:[{ user:'邓继诚', avatar:'邓', rating:5, date:'2026-06-06', text:'相机保护得很好，配件齐全。小组作业拍摄全程使用，效果满意！' }] },
-];
-
-// Flatten all reviews
-const allReviews = [];
-mockItems.forEach(item => {
-  item.reviews.forEach(r => allReviews.push({ ...r, itemName: item.name }));
-});
+function flatString(v) {
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return JSON.stringify(v);
+  return v || '';
+}
+// Dynamic review aggregation
+function getAllReviews() {
+  const result = [];
+  mockItems.forEach(item => {
+    if (item.reviews) item.reviews.forEach(r => result.push({ ...r, itemName: item.name }));
+  });
+  return result;
+}
 
 // ===== 状态管理 =====
 let currentFilter = { category: 'all', status: 'all', search: '' };
@@ -1044,7 +1027,7 @@ function renderCards() {
   document.getElementById('statTotal').textContent = mockItems.length;
   document.getElementById('statAvailable').textContent = mockItems.filter(i => i.status === 'available').length;
   document.getElementById('statRenters').textContent = [...new Set(mockItems.map(i => i.owner))].length;
-  document.getElementById('statReviews').textContent = allReviews.length;
+  document.getElementById('statReviews').textContent = getAllReviews().length;
 }
 
 function openDetail(id) {
@@ -1161,39 +1144,40 @@ function startEditItem(id) {
   section.classList.toggle('show');
 }
 
-function saveEditItem(id) {
+async function saveEditItem(id) {
   const item = mockItems.find(i => i.id === id);
   if (!item) return;
-  item.name = document.getElementById('editName' + id).value.trim();
-  item.category = document.getElementById('editCategory' + id).value;
-  item.price = parseInt(document.getElementById('editPrice' + id).value) || item.price;
-  item.deposit = parseInt(document.getElementById('editDeposit' + id).value) || item.deposit;
-  item.desc = document.getElementById('editDesc' + id).value.trim();
+  const name = document.getElementById('editName' + id).value.trim();
+  const category = document.getElementById('editCategory' + id).value;
+  const price = parseInt(document.getElementById('editPrice' + id).value) || item.price;
+  const deposit = parseInt(document.getElementById('editDeposit' + id).value) || item.deposit;
+  const description = document.getElementById('editDesc' + id).value.trim();
+
+  const { error } = await db.from('items').update({ name, category, price, deposit, description }).eq('id', id);
+  if (error) { showToast('⚠️ 保存失败'); return; }
   showToast('✅ 物品信息已更新！');
   closeDetail();
-  renderCards();
+  await loadItems();
 }
 
-function toggleItemStatus(id) {
+async function toggleItemStatus(id) {
   const item = mockItems.find(i => i.id === id);
   if (!item) return;
-  item.status = item.status === 'available' ? 'rented' : 'available';
-  showToast(item.status === 'available' ? '✅ 已标记为可租' : '🔒 已标记为已租出');
+  const newStatus = item.status === 'available' ? 'rented' : 'available';
+  await db.from('items').update({ status: newStatus }).eq('id', id);
+  showToast(newStatus === 'available' ? '✅ 已标记为可租' : '🔒 已标记为已租出');
   closeDetail();
-  renderCards();
+  await loadItems();
   if (currentSection === 'profile') renderProfile();
 }
 
-function deleteItem(id) {
+async function deleteItem(id) {
   if (!confirm('确定要删除这个物品吗？此操作不可撤销。')) return;
-  const idx = mockItems.findIndex(i => i.id === id);
-  if (idx >= 0) {
-    mockItems.splice(idx, 1);
-    favorites.delete(id);
-    showToast('🗑️ 物品已删除');
-  }
+  await db.from('items').delete().eq('id', id);
+  favorites.delete(id);
+  showToast('🗑️ 物品已删除');
   closeDetail();
-  renderCards();
+  await loadItems();
   if (currentSection === 'profile') renderProfile();
 }
 
@@ -1314,21 +1298,20 @@ function openDetailQuick(id) {
   openDetail(id);
 }
 
-function writeReview(itemId) {
+async function writeReview(itemId) {
   const rating = prompt('请给这次租赁体验打分（1-5星）：', '5');
   if (!rating || isNaN(rating) || rating < 1 || rating > 5) return;
   const text = prompt('写一句话评价：', '体验不错！');
   if (!text) return;
   const item = mockItems.find(i => i.id === itemId);
   if (item) {
-    item.reviews.push({
-      user: currentUser, avatar: '邓', rating: parseInt(rating),
-      date: new Date().toISOString().split('T')[0], text
-    });
-    allReviews.push({ user: currentUser, avatar: '邓', rating: parseInt(rating), date: new Date().toISOString().split('T')[0], text, itemName: item.name });
+    const newReview = { user: currentUser, avatar: '邓', rating: parseInt(rating), date: new Date().toISOString().split('T')[0], text };
+    const reviews = Array.isArray(item.reviews) ? [...item.reviews, newReview] : [newReview];
+    await db.from('items').update({ reviews }).eq('id', itemId);
+    showToast('✅ 评价已提交！');
+    await loadItems();
+    renderProfile();
   }
-  showToast('✅ 评价已提交！');
-  renderProfile();
 }
 
 function togglePublish() {
@@ -1388,39 +1371,33 @@ function triggerUpload() {
   document.getElementById('fileInput').click();
 }
 
-function publishItem() {
+async function publishItem() {
   const name = document.getElementById('pubName').value.trim();
   const category = document.getElementById('pubCategory').value;
   const price = parseInt(document.getElementById('pubPrice').value);
   const deposit = parseInt(document.getElementById('pubDeposit').value);
   const campus = document.getElementById('pubCampus').value;
-  const minDays = parseInt(document.getElementById('pubMinDays').value);
-  const desc = document.getElementById('pubDesc').value.trim();
+  const description = document.getElementById('pubDesc').value.trim();
 
-  if (!name || !price || !deposit || !desc) {
+  if (!name || !price || !deposit || !description) {
     showToast('⚠️ 请填写所有必填项（名称、租金、押金、描述）');
     return;
   }
 
-  const newItem = {
-    id: mockItems.length + Math.random(),
-    name, category, price, deposit, campus, minDays,
-    status: 'available',
-    owner: '邓继诚',
-    avatar: '邓',
-    rating: 5.0,
-    desc,
-    images: pendingImages.length > 0 ? [...pendingImages] : undefined,
-    reviews: []
-  };
-  mockItems.unshift(newItem);
-  renderCards();
+  const { error } = await db.from('items').insert({
+    name, category, price, deposit, campus,
+    status: 'available', owner: '邓继诚', rating: 5.0,
+    description, images: pendingImages.length > 0 ? JSON.stringify(pendingImages) : null
+  });
+
+  if (error) { showToast('⚠️ 发布失败: ' + error.message); return; }
+
+  await loadItems();
   document.getElementById('publishForm').classList.remove('show');
   ['pubName','pubPrice','pubDeposit','pubDesc'].forEach(id => document.getElementById(id).value = '');
-  // Reset images
   pendingImages = [];
   renderUploadPreviews();
-  showToast('✅ 租赁信息发布成功！已展示在首页看板。');
+  showToast('✅ 租赁信息发布成功！已同步到云数据库。');
 }
 
 function switchDetailImage(itemId, idx) {
@@ -1440,11 +1417,12 @@ function switchDetailImage(itemId, idx) {
 
 function renderReviews() {
   const grid = document.getElementById('reviewsGrid');
-  if (allReviews.length === 0) {
+  const reviews = getAllReviews();
+  if (reviews.length === 0) {
     grid.innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>暂无评价记录</p></div>';
     return;
   }
-  grid.innerHTML = allReviews.map(r => `
+  grid.innerHTML = reviews.map(r => `
     <div class="review-card">
       <div class="review-header">
         <div class="review-avatar">${r.avatar}</div>
@@ -1521,8 +1499,7 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
-renderCards();
-renderReviews();
+loadItems();
 initHeroBanner();
 
 // ===== 西北民族大学标志性建筑轮播 =====
