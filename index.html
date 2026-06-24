@@ -710,12 +710,58 @@ body {
   transition: all 0.3s;
 }
 .hero-dot.active { background: white; width: 24px; border-radius: 5px; }
+
+/* Auth Modal */
+.auth-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
+.auth-overlay.show { display:flex; }
+.auth-box { background:white; border-radius:12px; padding:32px; width:380px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+.auth-box h3 { margin:0 0 8px; font-size:22px; color:var(--primary); text-align:center; }
+.auth-box .auth-sub { text-align:center; color:#888; font-size:13px; margin-bottom:24px; }
+.auth-box .form-group { margin-bottom:16px; }
+.auth-box label { display:block; font-size:13px; color:#555; margin-bottom:4px; }
+.auth-box input { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; box-sizing:border-box; }
+.auth-box input:focus { border-color:var(--primary); outline:none; }
+.auth-box .btn-auth { width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; margin-top:8px; }
+.auth-box .btn-auth:hover { opacity:0.9; }
+.auth-box .auth-switch { text-align:center; margin-top:16px; font-size:13px; color:#888; }
+.auth-box .auth-switch a { color:var(--primary); cursor:pointer; text-decoration:underline; }
+.auth-box .auth-error { color:#e74c3c; font-size:12px; text-align:center; margin-top:8px; display:none; }
+.auth-user { display:flex; align-items:center; gap:8px; cursor:pointer; }
+.auth-user .avatar-circle { width:32px; height:32px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; }
+.auth-user .user-name { color:white; font-size:14px; }
+.btn-logout { background:none; border:1px solid rgba(255,255,255,0.3); color:white; padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px; margin-left:8px; }
+.btn-logout:hover { background:rgba(255,255,255,0.15); }
+
 </style>
 </head>
 <body>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h3 id="authTitle">登录</h3>
+    <p class="auth-sub" id="authSub">登录后发布和管理你的设备</p>
+    <div class="form-group"><label>邮箱</label>
+      <input type="email" id="authEmail" placeholder="your@email.com">
+    </div>
+    <div class="form-group"><label>密码</label>
+      <input type="password" id="authPassword" placeholder="至少6位">
+    </div>
+    <div class="form-group" id="authNameGroup" style="display:none"><label>你的名字</label>
+      <input type="text" id="authName" placeholder="在平台上显示的昵称" maxlength="8">
+    </div>
+    <button class="btn-auth" id="btnAuth" onclick="handleAuth()">登录</button>
+    <p class="auth-error" id="authError"></p>
+    <p class="auth-switch">
+      <span id="switchText">没有账号？</span>
+      <a id="switchLink" onclick="toggleAuthMode()">注册</a>
+    </p>
+  </div>
+</div>
+
 
 <!-- Header -->
 <header class="header">
@@ -814,7 +860,7 @@ body {
     <div class="profile-header">
       <div class="profile-avatar-lg" id="profileAvatar">👤</div>
       <div class="profile-info">
-        <h2 id="profileName">邓继诚</h2>
+        <h2 id="profileName">未登录</h2>
         <p>学号 P241012460 · 新闻学3班 · 榆中校区</p>
         <div class="profile-stats-row">
           <div class="profile-stat"><div class="num" id="profileMyItems">0</div><div class="lbl">我的发布</div></div>
@@ -922,7 +968,37 @@ function getAllReviews() {
 let currentFilter = { category: 'all', status: 'all', search: '' };
 let currentSection = 'home';
 let currentProfileTab = 'mylistings';
-const currentUser = '邓继诚';
+
+// ===== Auth =====
+let currentUser = null;
+let isRegistering = false;
+async function handleAuth(){
+  const e=document.getElementById('authEmail').value.trim();
+  const p=document.getElementById('authPassword').value.trim();
+  const err=document.getElementById('authError');
+  err.style.display='none';
+  if(!e||!p){ err.textContent='\u8bf7\u586b\u5199\u90ae\u7bb1\u548c\u5bc6\u7801'; err.style.display='block'; return; }
+  let r;
+  if(isRegistering){
+    const n=document.getElementById('authName').value.trim()||e.split('@')[0];
+    r=await db.auth.signUp({email:e,password:p,options:{data:{name:n}}});
+    if(!r.error&&r.data.user){
+      const lr=await db.auth.signInWithPassword({email:e,password:p});
+      if(!lr.error){ localStorage.setItem('sb_user',JSON.stringify({name:n,email:e})); return onAuthSuccess(n); }
+    }
+  }else{
+    r=await db.auth.signInWithPassword({email:e,password:p});
+  }
+  if(r.error){ err.textContent=r.error.message.includes('Invalid login')?'\u90ae\u7bb1\u6216\u5bc6\u7801\u9519\u8bef':r.error.message; err.style.display='block'; }
+  else{ const m=r.data.user.user_metadata||{}; const n=m.name||e.split('@')[0]; localStorage.setItem('sb_user',JSON.stringify({name:n,email:e})); onAuthSuccess(n); }
+}
+async function handleLogout(){ await db.auth.signOut(); localStorage.removeItem('sb_user'); currentUser=null; updateAuthUI(); showToast('\u5df2\u9000\u51fa\u767b\u5f55'); renderCards(); }
+function showAuth(){ document.getElementById('authError').style.display='none'; document.getElementById('authOverlay').classList.add('show'); if(isRegistering) toggleAuthMode(); }
+function toggleAuthMode(){ isRegistering=!isRegistering; document.getElementById('authTitle').textContent=isRegistering?'\u6ce8\u518c':'\u767b\u5f55'; document.getElementById('authSub').textContent=isRegistering?'\u6ce8\u518c\u540e\u53d1\u5e03\u548c\u7ba1\u7406\u4f60\u7684\u8bbe\u5907':'\u767b\u5f55\u540e\u53d1\u5e03\u548c\u7ba1\u7406\u4f60\u7684\u8bbe\u5907'; document.getElementById('btnAuth').textContent=isRegistering?'\u6ce8\u518c':'\u767b\u5f55'; document.getElementById('switchText').textContent=isRegistering?'\u5df2\u6709\u8d26\u53f7\uff1f':'\u6ca1\u6709\u8d26\u53f7\uff1f'; document.getElementById('switchLink').textContent=isRegistering?'\u767b\u5f55':'\u6ce8\u518c'; document.getElementById('authNameGroup').style.display=isRegistering?'block':'none'; document.getElementById('authError').style.display='none'; }
+function onAuthSuccess(name){ currentUser=name; document.getElementById('authOverlay').classList.remove('show'); updateAuthUI(); showToast('\u6b22\u8fce\u56de\u6765\uff0c'+name+'\uff01'); renderCards(); if(currentSection==='profile')renderProfile(); }
+function updateAuthUI(){ const L=!!currentUser; document.getElementById('navGuest').style.display=L?'none':'inline'; document.getElementById('navUser').style.display=L?'flex':'none'; document.getElementById('btnLoginNav').style.display=L?'none':'inline'; document.getElementById('btnLogoutNav').style.display=L?'inline':'none'; if(L){ document.getElementById('navAvatar').textContent=currentUser[0]; document.getElementById('navName').textContent=currentUser; document.getElementById('profileName').textContent=currentUser; } }
+async function initAuth(){ const s=localStorage.getItem('sb_user'); if(s){ const p=JSON.parse(s); const{data}=await db.auth.getSession(); if(data.session)currentUser=p.name; else localStorage.removeItem('sb_user'); } updateAuthUI(); }
+
 const favorites = new Set();
 const rentalHistory = [];
 
@@ -1039,7 +1115,7 @@ function openDetail(id) {
   const statusColor = item.status === 'available' ? 'var(--available)' : 'var(--rented)';
 
   document.getElementById('modalTitle').textContent = item.name;
-  const isMine = item.owner === currentUser || item.owner === '邓继诚';
+  const isMine = item.owner === currentUser;
   const isFav = favorites.has(item.id);
 
   document.getElementById('modalBody').innerHTML = `
@@ -1190,7 +1266,7 @@ function switchProfileTab(tab, el) {
 }
 
 function renderProfile() {
-  const myItems = mockItems.filter(i => i.owner === currentUser || i.owner === '邓继诚');
+  const myItems = mockItems.filter(i => i.owner === currentUser);
   const favItems = mockItems.filter(i => favorites.has(i.id));
   const rentedItems = rentalHistory.map(r => {
     const item = mockItems.find(i => i.id === r.itemId);
@@ -1305,7 +1381,7 @@ async function writeReview(itemId) {
   if (!text) return;
   const item = mockItems.find(i => i.id === itemId);
   if (item) {
-    const newReview = { user: currentUser, avatar: '邓', rating: parseInt(rating), date: new Date().toISOString().split('T')[0], text };
+    const newReview = { user: currentUser, avatar: (currentUser||'匿')[0], rating: parseInt(rating), date: new Date().toISOString().split('T')[0], text };
     const reviews = Array.isArray(item.reviews) ? [...item.reviews, newReview] : [newReview];
     await db.from('items').update({ reviews }).eq('id', itemId);
     showToast('✅ 评价已提交！');
@@ -1386,7 +1462,7 @@ async function publishItem() {
 
   const { error } = await db.from('items').insert({
     name, category, price, deposit, campus,
-    status: 'available', owner: '邓继诚', rating: 5.0,
+    status: 'available', owner: currentUser || '匿名', rating: 5.0,
     description, images: pendingImages.length > 0 ? JSON.stringify(pendingImages) : null
   });
 
@@ -1499,7 +1575,7 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
-loadItems();
+initAuth().then(() => { loadItems(); });
 initHeroBanner();
 
 // ===== 西北民族大学标志性建筑轮播 =====
