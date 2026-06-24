@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>西北民族大学 · 校园设备租赁平台 · CampusRent</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
   --primary: #1F3864;
@@ -930,23 +930,26 @@ body {
 </footer>
 
 <script>
-// ===== Supabase 初始化 =====
-const SUPABASE_URL = 'https://tqjvqnnfciptmlrshgtt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_FiXxzl0jdNizh4oT0QstzQ_2fa6SrbH';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ===== CloudFlare D1 API =====
+const API = '/api/items';
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  return res.json();
+}
 
 let mockItems = [];
 
 async function loadItems() {
-  const { data, error } = await db.from('items').select('*').order('created_at', { ascending: false });
-  if (!error && data) {
-    mockItems = data.map(item => ({
-      ...item,
-      desc: item.description || item.desc || '',
-      reviews: typeof item.reviews === 'string' ? JSON.parse(item.reviews) : (item.reviews || [])
-    }));
-  }
+  try {
+    const data = await api(API);
+    if (Array.isArray(data)) {
+      mockItems = data.map(item => ({
+        ...item,
+        desc: item.description || item.desc || '',
+        reviews: typeof item.reviews === 'string' ? JSON.parse(item.reviews) : (item.reviews || [])
+      }));
+    }
+  } catch(e) { console.error('Load error:', e); }
   renderCards();
 }
 
@@ -972,27 +975,29 @@ let currentProfileTab = 'mylistings';
 // ===== Auth =====
 let currentUser = null;
 let isRegistering = false;
-async function handleAuth(){
-  const e=document.getElementById('authEmail').value.trim();
-  const p=document.getElementById('authPassword').value.trim();
-  const err=document.getElementById('authError');
-  err.style.display='none';
-  if(!e||!p){ err.textContent='\u8bf7\u586b\u5199\u90ae\u7bb1\u548c\u5bc6\u7801'; err.style.display='block'; return; }
-  let r;
-  if(isRegistering){
-    const n=document.getElementById('authName').value.trim()||e.split('@')[0];
-    r=await db.auth.signUp({email:e,password:p,options:{data:{name:n}}});
-    if(!r.error&&r.data.user){
-      const lr=await db.auth.signInWithPassword({email:e,password:p});
-      if(!lr.error){ localStorage.setItem('sb_user',JSON.stringify({name:n,email:e})); return onAuthSuccess(n); }
-    }
-  }else{
-    r=await db.auth.signInWithPassword({email:e,password:p});
+async function handleAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value.trim();
+  const err = document.getElementById('authError');
+  err.style.display = 'none';
+  if (!email || !password) { err.textContent = '\u8bf7\u586b\u5199\u90ae\u7bb1\u548c\u5bc6\u7801'; err.style.display = 'block'; return; }
+  const name = document.getElementById('authName').value.trim() || email.split('@')[0];
+
+  if (isRegistering) {
+    const users = JSON.parse(localStorage.getItem('users_db') || '{}');
+    if (users[email]) { err.textContent = '\u8be5\u90ae\u7bb1\u5df2\u6ce8\u518c'; err.style.display = 'block'; return; }
+    users[email] = { password, name };
+    localStorage.setItem('users_db', JSON.stringify(users));
+    localStorage.setItem('sb_user', JSON.stringify({ name, email }));
+    onAuthSuccess(name);
+  } else {
+    const users = JSON.parse(localStorage.getItem('users_db') || '{}');
+    if (!users[email] || users[email].password !== password) { err.textContent = '\u90ae\u7bb1\u6216\u5bc6\u7801\u9519\u8bef'; err.style.display = 'block'; return; }
+    localStorage.setItem('sb_user', JSON.stringify({ name: users[email].name, email }));
+    onAuthSuccess(users[email].name);
   }
-  if(r.error){ err.textContent=r.error.message.includes('Invalid login')?'\u90ae\u7bb1\u6216\u5bc6\u7801\u9519\u8bef':r.error.message; err.style.display='block'; }
-  else{ const m=r.data.user.user_metadata||{}; const n=m.name||e.split('@')[0]; localStorage.setItem('sb_user',JSON.stringify({name:n,email:e})); onAuthSuccess(n); }
 }
-async function handleLogout(){ await db.auth.signOut(); localStorage.removeItem('sb_user'); currentUser=null; updateAuthUI(); showToast('\u5df2\u9000\u51fa\u767b\u5f55'); renderCards(); }
+async function handleLogout(){ localStorage.removeItem('sb_user'); currentUser=null; updateAuthUI(); showToast('\u5df2\u9000\u51fa\u767b\u5f55'); renderCards(); }
 function showAuth(){ document.getElementById('authError').style.display='none'; document.getElementById('authOverlay').classList.add('show'); if(isRegistering) toggleAuthMode(); }
 function toggleAuthMode(){ isRegistering=!isRegistering; document.getElementById('authTitle').textContent=isRegistering?'\u6ce8\u518c':'\u767b\u5f55'; document.getElementById('authSub').textContent=isRegistering?'\u6ce8\u518c\u540e\u53d1\u5e03\u548c\u7ba1\u7406\u4f60\u7684\u8bbe\u5907':'\u767b\u5f55\u540e\u53d1\u5e03\u548c\u7ba1\u7406\u4f60\u7684\u8bbe\u5907'; document.getElementById('btnAuth').textContent=isRegistering?'\u6ce8\u518c':'\u767b\u5f55'; document.getElementById('switchText').textContent=isRegistering?'\u5df2\u6709\u8d26\u53f7\uff1f':'\u6ca1\u6709\u8d26\u53f7\uff1f'; document.getElementById('switchLink').textContent=isRegistering?'\u767b\u5f55':'\u6ce8\u518c'; document.getElementById('authNameGroup').style.display=isRegistering?'block':'none'; document.getElementById('authError').style.display='none'; }
 function onAuthSuccess(name){ currentUser=name; document.getElementById('authOverlay').classList.remove('show'); updateAuthUI(); showToast('\u6b22\u8fce\u56de\u6765\uff0c'+name+'\uff01'); renderCards(); if(currentSection==='profile')renderProfile(); }
@@ -1229,8 +1234,7 @@ async function saveEditItem(id) {
   const deposit = parseInt(document.getElementById('editDeposit' + id).value) || item.deposit;
   const description = document.getElementById('editDesc' + id).value.trim();
 
-  const { error } = await db.from('items').update({ name, category, price, deposit, description }).eq('id', id);
-  if (error) { showToast('⚠️ 保存失败'); return; }
+  await api(API + '/' + id, { method: 'PUT', body: JSON.stringify({ name, category, price, deposit, description }) });
   showToast('✅ 物品信息已更新！');
   closeDetail();
   await loadItems();
@@ -1240,7 +1244,7 @@ async function toggleItemStatus(id) {
   const item = mockItems.find(i => i.id === id);
   if (!item) return;
   const newStatus = item.status === 'available' ? 'rented' : 'available';
-  await db.from('items').update({ status: newStatus }).eq('id', id);
+  await api(API + '/' + id, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
   showToast(newStatus === 'available' ? '✅ 已标记为可租' : '🔒 已标记为已租出');
   closeDetail();
   await loadItems();
@@ -1249,7 +1253,7 @@ async function toggleItemStatus(id) {
 
 async function deleteItem(id) {
   if (!confirm('确定要删除这个物品吗？此操作不可撤销。')) return;
-  await db.from('items').delete().eq('id', id);
+  await api(API + '/' + id, { method: 'DELETE' });
   favorites.delete(id);
   showToast('🗑️ 物品已删除');
   closeDetail();
@@ -1383,7 +1387,7 @@ async function writeReview(itemId) {
   if (item) {
     const newReview = { user: currentUser, avatar: (currentUser||'匿')[0], rating: parseInt(rating), date: new Date().toISOString().split('T')[0], text };
     const reviews = Array.isArray(item.reviews) ? [...item.reviews, newReview] : [newReview];
-    await db.from('items').update({ reviews }).eq('id', itemId);
+    await api(API + '/' + itemId, { method: 'PUT', body: JSON.stringify({ reviews }) });
     showToast('✅ 评价已提交！');
     await loadItems();
     renderProfile();
@@ -1618,5 +1622,22 @@ const buildings = [
 console.log('校园设备租赁信息可视化平台 v0.3 · 新闻3班 · 邓继诚小组');
 console.log('技术栈：HTML5 + CSS3 + Vanilla JS + ECharts 5 | 本次开发约65%代码由AI辅助生成');
 </script>
+
+<!-- Admin Panel -->
+<div class="admin-overlay" id="adminSection" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;justify-content:center;align-items:center;">
+<div class="admin-box" style="background:white;border-radius:12px;padding:24px;width:680px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+<h3 style="margin:0;color:var(--primary)">用户管理</h3>
+<button onclick="document.getElementById('adminSection').style.display='none'" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888">&times;</button>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+<input id="admName" placeholder="姓名" style="flex:1;min-width:80px;padding:8px;border:1px solid #ddd;border-radius:6px">
+<input id="admEmail" placeholder="邮箱" style="flex:2;min-width:120px;padding:8px;border:1px solid #ddd;border-radius:6px">
+<input id="admPass" placeholder="密码" style="flex:1;min-width:80px;padding:8px;border:1px solid #ddd;border-radius:6px">
+<button onclick="adminAddUser()" style="background:var(--primary);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">添加</button>
+</div>
+<div id="adminUserList" style="font-size:13px"></div>
+</div></div>
+
 </body>
 </html>
